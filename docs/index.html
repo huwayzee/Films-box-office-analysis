@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Films Box Office Dashboard</title>
+<meta name="description" content="Which film budgets, ratings and runtimes earn back their cost: an analysis of 3,087 US films, 1980–2016.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centred column of cards; summary first, detail below. */
+:root {
+  color-scheme: light;
+  --bg: #f6f6f3; --panel: #fcfcfb; --line: #e2e1dc; --fg: #0b0b0b; --muted: #52514e;
+  --accent: #2a78d6; --bar-muted: #c9c8c1; --ref: #8a8983; --bad: #c53b3a; --ok: #1f7a3a;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "IBM Plex Sans", -apple-system, "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; --bg: #121211; --panel: #1a1a19; --line: #2f2f2c; --fg: #f0efec; --muted: #c3c2b7;
+    --accent: #3987e5; --bar-muted: #4a4945; --ref: #8f8e88; --bad: #e66767; --ok: #5cbf7a; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin-inline: auto; padding-block: 40px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 0 0 12px; text-wrap: balance; }
+h2 { font-size: 19px; font-weight: 500; margin: 0; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.take { margin: 0; max-width: 68ch; font-size: 17px; }
+.take b { font-weight: 600; }
+.scope, .note, .foot { margin: 8px 0 0; color: var(--muted); font-size: 13px; max-width: 80ch; }
+.note { margin: 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+.tile, .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.tile { padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
+.tile .lab, .tile .sub { color: var(--muted); font-size: 13px; }
+.tile .num { font-family: var(--display); font-size: 32px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.sec { display: grid; gap: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+.card { padding: 20px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.chart { position: relative; min-height: 160px; }
+.chart svg { display: block; }
+.chart text { font-family: var(--body); font-size: 13px; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 6px 10px; font-size: 13px; white-space: nowrap; }
+.tip .k { color: var(--muted); }
+.tablebox { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 500; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.r { text-align: right; }
+td.neg { color: var(--bad); } td.pos { color: var(--ok); }
+@media (max-width: 560px) { .hide-narrow { display: none; } }
+ol { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 80ch; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Films box office</h1>
+    <p class="take" id="takeaway"></p>
+    <p class="scope">US films released 1980–2016 with a real box office figure. A hit is a film whose box office gross is at or above its production budget. Marketing, streaming and home video are not included.</p>
+  </header>
+
+  <section class="tiles" id="tiles" aria-label="Headline figures"></section>
+
+  <section class="sec">
+    <h2>Smaller budgets give better returns</h2>
+    <div class="grid">
+      <div class="card"><h3>Median return by budget tier</h3><p class="note">Gross per $1 of budget. The dashed line is break-even (1.0x).</p><div class="chart" id="c-ret-tier"></div></div>
+      <div class="card"><h3>Hit rate by budget tier</h3><p class="note">The dashed line is the hit rate across all films.</p><div class="chart" id="c-hit-tier"></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Family audiences and longer films are more reliable</h2>
+    <div class="grid">
+      <div class="card"><h3>Hit rate by rating</h3><p class="note">G and PG films sell to whole families, so one decision buys several tickets.</p><div class="chart" id="c-hit-rating"></div></div>
+      <div class="card"><h3>Hit rate by runtime</h3><p class="note">Long films are usually prestige or franchise projects, so length reflects confidence rather than causing success.</p><div class="chart" id="c-hit-run"></div></div>
+      <div class="card"><h3>Median return by decade</h3><p class="note">The 1980s look strong partly because mostly well-known films from then are in the data.</p><div class="chart" id="c-ret-dec"></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>The extremes</h2>
+    <div class="card">
+      <h3>Biggest losses and best returns</h3>
+      <p class="note">Big-budget spectacle without a known story loses the most; micro-budget horror returns the most. The Polar Express is left out because its gross in the source is wrong.</p>
+      <div class="tablebox"><table id="t-notable"><thead><tr><th>Type</th><th>Film</th><th class="r hide-narrow">Year</th><th class="r">Budget</th><th class="r">Gross</th><th class="r hide-narrow">Profit</th><th class="r">Return</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>What to do with this</h2>
+    <div class="card"><ol>
+      <li>Treat releases as a portfolio: fund several low-budget films for each tentpole.</li>
+      <li>Approve $100M+ projects only with proven IP, a family-friendly rating plan and international pre-sales.</li>
+      <li>Aim for PG or PG-13 where the story allows. Keep R for low-budget genres such as horror.</li>
+      <li>Spend on event-style marketing that builds word of mouth, rather than on production scale.</li>
+    </ol></div>
+  </section>
+
+  <section class="sec">
+    <h2>Data cleaning</h2>
+    <div class="card">
+      <p class="note">What was found in the source file and what was done about it.</p>
+      <div class="tablebox"><table id="t-dq"><thead><tr><th>Check</th><th class="r">Rows</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <p class="foot">Built with Excel, SQL and D3. Source files, SQL and the full workbook: <a href="https://github.com/huwayzee/Films-box-office-analysis">github.com/huwayzee/Films-box-office-analysis</a></p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const DATA = {"kpis": [{"films": 3087, "hit_rate": 0.5484, "median_return": 1.14, "total_profit_usd": 47254823968, "top10_share_of_gross": 0.4101}], "segments": [{"dimension": "Budget tier", "segment": "Under $5M", "sort_order": 1, "films": 439, "hit_rate": 0.5854, "median_return": 1.708, "total_profit_usd": 3530555569}, {"dimension": "Budget tier", "segment": "$5M-20M", "sort_order": 2, "films": 994, "hit_rate": 0.5473, "median_return": 1.236, "total_profit_usd": 13362976535}, {"dimension": "Budget tier", "segment": "$20M-50M", "sort_order": 3, "films": 890, "hit_rate": 0.5618, "median_return": 1.134, "total_profit_usd": 14938143472}, {"dimension": "Budget tier", "segment": "$50M-100M", "sort_order": 4, "films": 517, "hit_rate": 0.5087, "median_return": 1.012, "total_profit_usd": 8499216527}, {"dimension": "Budget tier", "segment": "$100M+", "sort_order": 5, "films": 247, "hit_rate": 0.5223, "median_return": 1.031, "total_profit_usd": 6923931865}, {"dimension": "Rating", "segment": "G", "sort_order": 1, "films": 65, "hit_rate": 0.6615, "median_return": 1.357, "total_profit_usd": 2646756532}, {"dimension": "Rating", "segment": "PG", "sort_order": 2, "films": 470, "hit_rate": 0.6277, "median_return": 1.303, "total_profit_usd": 11360666075}, {"dimension": "Rating", "segment": "PG-13", "sort_order": 3, "films": 1124, "hit_rate": 0.5445, "median_return": 1.127, "total_profit_usd": 20437681140}, {"dimension": "Rating", "segment": "R", "sort_order": 4, "films": 1364, "hit_rate": 0.5315, "median_return": 1.08, "total_profit_usd": 12930433134}, {"dimension": "Runtime (min)", "segment": "90 or less", "sort_order": 1, "films": 479, "hit_rate": 0.5219, "median_return": 1.103, "total_profit_usd": 4601180547}, {"dimension": "Runtime (min)", "segment": "91-105", "sort_order": 2, "films": 1136, "hit_rate": 0.5326, "median_return": 1.077, "total_profit_usd": 11988012292}, {"dimension": "Runtime (min)", "segment": "106-120", "sort_order": 3, "films": 807, "hit_rate": 0.5489, "median_return": 1.138, "total_profit_usd": 11346944125}, {"dimension": "Runtime (min)", "segment": "121-140", "sort_order": 4, "films": 479, "hit_rate": 0.5804, "median_return": 1.195, "total_profit_usd": 11276065277}, {"dimension": "Runtime (min)", "segment": "Over 140", "sort_order": 5, "films": 186, "hit_rate": 0.629, "median_return": 1.217, "total_profit_usd": 8042621727}, {"dimension": "Decade", "segment": "1980s", "sort_order": 1, "films": 173, "hit_rate": 0.7919, "median_return": 3.051, "total_profit_usd": 6834117993}, {"dimension": "Decade", "segment": "1990s", "sort_order": 2, "films": 624, "hit_rate": 0.5897, "median_return": 1.227, "total_profit_usd": 11257217914}, {"dimension": "Decade", "segment": "2000s", "sort_order": 3, "films": 1427, "hit_rate": 0.5004, "median_return": 1.001, "total_profit_usd": 16004067311}, {"dimension": "Decade", "segment": "2010s", "sort_order": 4, "films": 863, "hit_rate": 0.5492, "median_return": 1.115, "total_profit_usd": 13159420750}], "notable_films": [{"group": "Biggest loss", "title": "John Carter", "year": 2012, "budget_usd": 263700000, "gross_usd": 73058679, "profit_usd": -190641321, "return_x": 0.28}, {"group": "Biggest loss", "title": "Battleship", "year": 2012, "budget_usd": 209000000, "gross_usd": 65173160, "profit_usd": -143826840, "return_x": 0.31}, {"group": "Biggest loss", "title": "47 Ronin", "year": 2013, "budget_usd": 175000000, "gross_usd": 38297305, "profit_usd": -136702695, "return_x": 0.22}, {"group": "Biggest loss", "title": "Jack the Giant Slayer", "year": 2013, "budget_usd": 195000000, "gross_usd": 65171860, "profit_usd": -129828140, "return_x": 0.33}, {"group": "Biggest loss", "title": "Jupiter Ascending", "year": 2015, "budget_usd": 176000000, "gross_usd": 47375327, "profit_usd": -128624673, "return_x": 0.27}, {"group": "Best return", "title": "Paranormal Activity", "year": 2007, "budget_usd": 15000, "gross_usd": 107917283, "profit_usd": 107902283, "return_x": 7194.49}, {"group": "Best return", "title": "Tarnation", "year": 2003, "budget_usd": 218, "gross_usd": 592014, "profit_usd": 591796, "return_x": 2715.66}, {"group": "Best return", "title": "The Blair Witch Project", "year": 1999, "budget_usd": 60000, "gross_usd": 140530114, "profit_usd": 140470114, "return_x": 2342.17}, {"group": "Best return", "title": "The Brothers McMullen", "year": 1995, "budget_usd": 25000, "gross_usd": 10246600, "profit_usd": 10221600, "return_x": 409.86}, {"group": "Best return", "title": "El Mariachi", "year": 1992, "budget_usd": 7000, "gross_usd": 2040920, "profit_usd": 2033920, "return_x": 291.56}], "data_quality": [{"check": "Duplicate title + year rows", "rows": 122, "action": "Removed"}, {"check": "Gross filled with the median value", "rows": 789, "action": "Flagged and excluded"}, {"check": "Gross missing", "rows": 1, "action": "Excluded"}, {"check": "Rating missing", "rows": 300, "action": "Left blank"}, {"check": "Budget over 1 billion (local currency)", "rows": 6, "action": "US films only analysed"}, {"check": "Runtime under 40 minutes", "rows": 16, "action": "Kept"}]};
+(function () {
+  const pct = d3.format('.0%'), pct1 = d3.format('.1%'), comma = d3.format(',');
+  const usd = (v) => '$' + new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(v);
+  const xfmt = (v) => d3.format('.2f')(v) + 'x';
+  const k = DATA.kpis[0];
+
+  const take = document.getElementById('takeaway');
+  take.append('Only ');
+  take.appendChild(Object.assign(document.createElement('b'), { textContent: pct(k.hit_rate) }));
+  take.append(' of films earn back their budget, and the top 10% take ');
+  take.appendChild(Object.assign(document.createElement('b'), { textContent: pct(k.top10_share_of_gross) }));
+  take.append(' of all box office gross. Spread money across many small films and back big budgets only with family-friendly, proven ideas.');
+
+  const tiles = [
+    ['Films analysed', comma(k.films), 'US, 1980–2016'],
+    ['Hit rate', pct(k.hit_rate), 'Gross at or above budget'],
+    ['Median return', xfmt(k.median_return), 'Gross per $1 of budget'],
+    ['Top 10% share of gross', pct(k.top10_share_of_gross), 'A hit-driven business'],
+    ['Total profit', usd(k.total_profit_usd), 'Gross minus budget, all films'],
+  ];
+  const tg = d3.select('#tiles').selectAll('div').data(tiles).join('div').attr('class', 'tile');
+  tg.append('span').attr('class', 'lab').text((d) => d[0]);
+  tg.append('span').attr('class', 'num').text((d) => d[1]);
+  tg.append('span').attr('class', 'sub').text((d) => d[2]);
+
+  function bars(el, rows, opts) {
+    el.innerHTML = '';
+    const width = Math.max(260, el.clientWidth);
+    const barH = 22, gap = 12, top = 6, bottom = 8;
+    const height = top + rows.length * (barH + gap) - gap + bottom;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', [0, 0, width, height]).attr('role', 'img').attr('aria-label', opts.label);
+    const probe = svg.append('g');
+    const labW = d3.max(rows, (r) => probe.append('text').text(r.segment).node().getComputedTextLength());
+    const valW = d3.max(rows, (r) => probe.append('text').text(opts.fmt(r.v)).node().getComputedTextLength());
+    probe.remove();
+    const left = Math.ceil(labW) + 10, right = Math.ceil(valW) + 10;
+    const max = Math.max(d3.max(rows, (r) => r.v), opts.ref || 0);
+    const x = d3.scaleLinear([0, max * 1.04], [left, width - right]);
+    const y = (i) => top + i * (barH + gap);
+    const best = d3.maxIndex(rows, (r) => r.v);
+    svg.append('line').attr('x1', left).attr('x2', left).attr('y1', 0).attr('y2', height).attr('stroke', 'var(--line)');
+    const g = svg.selectAll('g.row').data(rows).join('g').attr('class', 'row');
+    g.append('text').attr('x', left - 8).attr('y', (d, i) => y(i) + barH / 2).attr('dy', '0.35em').attr('text-anchor', 'end').attr('fill', 'var(--fg)').text((d) => d.segment);
+    g.append('rect').attr('x', left).attr('y', (d, i) => y(i)).attr('height', barH).attr('rx', 4)
+      .attr('width', (d) => Math.max(1, x(d.v) - left))
+      .attr('fill', (d, i) => (i === best ? 'var(--accent)' : 'var(--bar-muted)'));
+    g.append('text').attr('x', (d) => x(d.v) + 6).attr('y', (d, i) => y(i) + barH / 2).attr('dy', '0.35em').attr('fill', 'var(--muted)').style('font-variant-numeric', 'tabular-nums').text((d) => opts.fmt(d.v));
+    if (opts.ref != null) svg.append('line').attr('x1', x(opts.ref)).attr('x2', x(opts.ref)).attr('y1', 0).attr('y2', height).attr('stroke', 'var(--ref)').attr('stroke-dasharray', '4 3');
+    const tip = d3.select(el).append('div').attr('class', 'tip').style('display', 'none');
+    g.append('rect').attr('x', 0).attr('width', width).attr('y', (d, i) => y(i) - gap / 2).attr('height', barH + gap).attr('fill', 'transparent')
+      .on('pointermove', function (ev, d) {
+        tip.style('display', null).html('');
+        tip.append('div').attr('class', 'k').text(d.segment);
+        tip.append('div').text(opts.name + ': ' + opts.fmt(d.v));
+        tip.append('div').text('Films: ' + comma(d.films));
+        const [mx, my] = d3.pointer(ev, el);
+        const tw = tip.node().offsetWidth;
+        tip.style('left', Math.min(Math.max(0, mx + 12), el.clientWidth - tw) + 'px').style('top', (my + 14) + 'px');
+      })
+      .on('pointerleave', () => tip.style('display', 'none'));
+  }
+  const seg = (dim, field) => DATA.segments.filter((r) => r.dimension === dim).sort((a, b) => a.sort_order - b.sort_order).map((r) => ({ segment: r.segment, films: r.films, v: r[field] }));
+  const charts = [
+    ['c-ret-tier', 'Budget tier', 'median_return', xfmt, 1, 'Median return'],
+    ['c-hit-tier', 'Budget tier', 'hit_rate', pct1, k.hit_rate, 'Hit rate'],
+    ['c-hit-rating', 'Rating', 'hit_rate', pct1, k.hit_rate, 'Hit rate'],
+    ['c-hit-run', 'Runtime (min)', 'hit_rate', pct1, k.hit_rate, 'Hit rate'],
+    ['c-ret-dec', 'Decade', 'median_return', xfmt, 1, 'Median return'],
+  ];
+  const draw = () => charts.forEach(([id, dim, f, fmt, ref, name]) => bars(document.getElementById(id), seg(dim, f), { fmt, ref, name, label: name + ' by ' + dim.toLowerCase() }));
+  draw();
+  let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(draw, 120); });
+
+  const nb = document.querySelector('#t-notable tbody');
+  DATA.notable_films.forEach((r) => {
+    const tr = nb.insertRow();
+    const add = (txt, cls) => { const c = tr.insertCell(); c.textContent = txt; if (cls) c.className = cls; };
+    const p = r.profit_usd;
+    add(r.group); add(r.title); add(r.year, 'r hide-narrow'); add(usd(r.budget_usd), 'r'); add(usd(r.gross_usd), 'r');
+    add((p < 0 ? '−' : '+') + usd(Math.abs(p)), 'r hide-narrow ' + (p < 0 ? 'neg' : 'pos'));
+    add(comma(Math.round(r.return_x * 100) / 100) + 'x', 'r');
+  });
+  const db = document.querySelector('#t-dq tbody');
+  DATA.data_quality.forEach((r) => {
+    const tr = db.insertRow();
+    [[r.check, ''], [comma(r.rows), 'r'], [r.action, '']].forEach(([v, cls]) => { const c = tr.insertCell(); c.textContent = v; if (cls) c.className = cls; });
+  });
+})();
+</script>
+</body>
+</html>

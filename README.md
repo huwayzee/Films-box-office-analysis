@@ -4,7 +4,9 @@
 
 Analysis of 4,846 films (1916–2016), focused on 3,087 US releases from 1980 onward with reliable box office figures. Built in Excel (formula-driven dashboard) and reproduced in SQL.
 
-**Interactive dashboard:** [Films Box Office Dashboard](https://claude.ai/artifact/Mw26UubSorZ8cjo72u25r3)
+**Interactive dashboard:** [huwayzee.github.io/Films-box-office-analysis](https://huwayzee.github.io/Films-box-office-analysis/)
+
+![Median return by budget tier](images/return_by_budget.png)
 
 ## Files
 
@@ -13,6 +15,8 @@ Analysis of 4,846 films (1916–2016), focused on 3,087 US releases from 1980 on
 | `Films_Box_Office_Analysis.xlsx` | Dashboard, insights, segment analysis, data quality log and cleaned data |
 | `films_clean.csv` | Cleaned dataset used by the SQL script |
 | `films_analysis.sql` | The same analysis in SQL (SQLite) |
+| `docs/index.html` | The interactive dashboard (published with GitHub Pages) |
+| `images/` | Chart images used in this README |
 
 Run the SQL:
 
@@ -27,6 +31,13 @@ sqlite3 films.db < films_analysis.sql
 3. **Smaller budgets give better returns.** Films under $5M had a median return of 1.71x and a 59% hit rate. Films over $50M returned about 1.0x, and the biggest losses (John Carter: –$191M) all come from this group.
 4. **Family ratings are the most reliable.** G and PG films earned back their budget 63–66% of the time, compared with 53–54% for PG-13 and R.
 5. **Low-budget horror is the standout.** Paranormal Activity ($15K budget → $108M gross) and The Blair Witch Project ($60K → $141M) are the biggest return outliers.
+
+## Charts
+
+| | |
+|---|---|
+| ![Hit rate by budget tier](images/hit_rate_by_budget.png) | ![Hit rate by rating](images/hit_rate_by_rating.png) |
+| ![Hit rate by runtime](images/hit_rate_by_runtime.png) | ![Median return by decade](images/return_by_decade.png) |
 
 ## Recommendations
 
@@ -54,4 +65,4 @@ sqlite3 films.db < films_analysis.sql
 
 ## Tools
 
-Excel (COUNTIFS, AVERAGEIFS, SUMIFS, array MEDIAN, charts), SQL (CTEs, views, CASE, window functions with NTILE), Python/pandas for cleaning.
+Excel (COUNTIFS, AVERAGEIFS, SUMIFS, array MEDIAN, charts), SQL (CTEs, views, CASE, window functions with NTILE), Python/pandas for cleaning, D3.js for the interactive dashboard, matplotlib for the README charts.
