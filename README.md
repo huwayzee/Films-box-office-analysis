@@ -60,7 +60,7 @@ sqlite3 films.db < films_analysis.sql
 
 - Gross is box office only. Marketing, streaming and home video revenue are not included, so "hit" is a generous definition.
 - Some source values are wrong. For example, The Polar Express shows $0.67M gross, while the actual US gross was over $180M.
-- The findings show correlation, not causation. Longer films do better partly because prestige and franchise projects tend to run long.
+- The findings show correlation. Longer films do better partly because prestige and franchise projects tend to run long.
 - The 1980s look unusually strong partly because of survivorship: mostly well-known films from that decade are in the dataset.
 
 ## Tools
